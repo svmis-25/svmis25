@@ -190,7 +190,7 @@ $conn->close();
     <form class="form-signin" method="POST">
       <div class="text-center">
         <img src="assets/images/logo4.png" alt="SVMIS Logo">
-        <h4>Smart Van Management Information System <br>(SVMIS)</h4>
+        <h4>Smart Van Management Information System <br>(SVMIS ver 2.0)</h4>
       </div>
         
         <h6 class="mb-4 text-center" style="padding-top: 5px;">Sign in to start your session</h6>

@@ -44,6 +44,9 @@ if (isset($_GET['id'])){
         exit;
     }
 
+    // Check if no active transaction is found
+    $noTransactionMessage = ""; // Initialize an empty string for the message
+
     // Fetch the latest transaction for the passenger where driver_id = 0, active = 1, and is_complete = 0
     $sql = "SELECT * FROM transactions WHERE passenger_id = ? AND driver_id = 0 AND is_active = 1 AND is_complete = 0 ORDER BY id DESC LIMIT 1";
     $stmt = $conn->prepare($sql);
@@ -60,8 +63,9 @@ if (isset($_GET['id'])){
         $destination = $transaction['destination'];
         $qr_code = generateQRCode($transactionNo, $passenger_id, $origin, $destination);
     } else {
-        echo "No active transaction found for the selected passenger.";
-        exit;
+        // echo "No active transaction found for the selected passenger.";
+        // exit;
+        $noTransactionMessage = "No active transaction found for the selected passenger.";
     }
 
     $stmt->close();
@@ -169,16 +173,32 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
         .print-btn:hover {
             background-color: #45a049;
         }
+        .no-transaction-message {
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <h1>QR Code</h1>
-    <p class="qr-text">QR Code for Booking</p>
+    <!-- <p class="qr-text">QR Code for Booking</p>
     <p class="qr-description">Please have the driver scan this QR code using the Driver App to match him to the booking.</p>
     <img id="qrCodeImage" src="data:image/png;base64,<?= $qr_code ?>" alt="QR Code" class="qr-image">
-    <br>
+    <br> -->
     <!-- Print Button -->
-    <button class="print-btn btn btn-success" onclick="printQRCode()">Print QR Code</button>
+    <!-- <button class="print-btn btn btn-success" onclick="printQRCode()">Print QR Code</button> -->
+
+    <!-- Display message if no active transaction -->
+    <?php if ($noTransactionMessage): ?>
+        <p class="no-transaction-message"><?= $noTransactionMessage ?></p>
+    <?php else: ?>
+        <p class="qr-text">QR Code for Booking</p>
+        <p class="qr-description">Please have the driver scan this QR code using the Driver App to match him to the booking.</p>
+        <img id="qrCodeImage" src="data:image/png;base64,<?= $qr_code ?>" alt="QR Code" class="qr-image">
+        <br>
+        <!-- Print Button -->
+        <button class="print-btn btn btn-success" onclick="printQRCode()">Print QR Code</button>
+    <?php endif; ?>
 
     <script>
         // Function to print the QR code

@@ -104,8 +104,22 @@ if ($stmt->num_rows > 0) {
 // Close the statement
 $stmt->close();
 
-// Get the Total number of records
-$totalRecords = count($data);
+
+/*===================================
+  Function: Luggage Code Generator
+=====================================*/
+function generateLuggageCode($passenger_id) {
+  $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  $luggageCode = '';
+
+  // Generate a random 50-character code from the $characters string
+    for ($i = 0; $i < 50; $i++) {
+        $luggageCode .= $characters[rand(0, strlen($characters) - 1)];
+    }
+  // Append Passenger_id to the luggage code
+  $luggageCode = $passenger_id . "-" . $luggageCode;
+  return $luggageCode;
+}
 
 /*===================================
   Query: Insert Data into Database
@@ -115,108 +129,43 @@ $successMessage = ""; // Initialize empty message for success submission result
 $errors = []; // Initialize Array to hold error messages 
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-  $firstname = $_POST['firstname'] ?? '';
-  $middlename = $_POST['middlename'] ?? '';
-  $lastname = $_POST['lastname'] ?? '';
-  $qualifier = $_POST['qualifier'] ?? '';
-  $contactNo = $_POST['contactNo'] ?? '';
-  $email = $_POST['email'] ?? '';
-  $role = 4;
-  $hashedPassword = password_hash('Svmis@202501', PASSWORD_DEFAULT);
+    $passenger_id = sanitizeInput($_POST['passenger_id']);
+    $driver_id = ''; // Driver ID is not yet implemented, this will be updated later when driver scans the luggage
+    $luggage_code = generateLuggageCode($passenger_id);
+    $description = sanitizeInput($_POST['description']);
+    $size = sanitizeInput($_POST['size']);
+    $status =  'Pending Verification'; // Default status
+    $trip_id = ''; // Trip ID is not yet implemented, this will be updated later when driver scans the luggage
+    
+  // Initialize Array to hold error messages
   $errors = [];
 
-  // Define valid qualifiers
-  $valid_qualifiers = ["Jr", "JR", "II", "III", "IV", "V"];
+    // Validate the input
+    if (empty($passenger_id)) {
+        $errors['passenger_id'] = "Passenger ID is required.";
+    }
 
-  // // Validate and sanitize inputs
-  // function sanitizeInput($data) {
-  //     return htmlspecialchars(strip_tags(trim($data)));
-  // }
+    if (empty($description)) {
+        $errors['description'] = "Description is required.";
+    }
 
-  $firstname = sanitizeInput($firstname);
-  if (empty($firstname) || !preg_match("/^[a-zA-Z-' ]*$/", $firstname)) {
-      $errors['firstname'] = "Only letters and white space allowed in firstname.";
-  }
+    if (empty($size)) {
+        $errors['size'] = "Size is required.";
+    }
 
-  if (!empty($middlename)) {
-      $middlename = sanitizeInput($middlename);
-      if (!preg_match("/^[a-zA-Z-' ]*$/", $middlename)) {
-          $errors['middlename'] = "Only letters and white space allowed in middlename.";
-      }
-  }
-
-  $lastname = sanitizeInput($lastname);
-  if (empty($lastname) || !preg_match("/^[a-zA-Z-' ]*$/", $lastname)) {
-      $errors['lastname'] = "Only letters and white space allowed in lastname.";
-  }
-
-  if (!empty($qualifier) && !in_array($qualifier, $valid_qualifiers)) {
-      $errors['qualifier'] = "Invalid qualifier. Valid qualifiers are: " . implode(", ", $valid_qualifiers);
-  }
-
-  $contactNo = sanitizeInput($contactNo);
-  if (!empty($contactNo) && !preg_match("/^[0-9]{10,15}$/", $contactNo)) {
-      $errors['contact'] = "Invalid contact number.";
-  }
-
-  if (empty($email)) {
-      // Check for the last used `noemailX@gmail.com` and increment
-      $email = "noemail";
-      $sql = "SELECT email FROM passengers WHERE email LIKE 'noemail%' ORDER BY id DESC LIMIT 1";
-      $stmt = $conn->prepare($sql);
-
-      if ($stmt) {
-          $stmt->execute();
-          $stmt->store_result();
-
-          if ($stmt->num_rows > 0) {
-              $stmt->bind_result($lastEmail);
-              $stmt->fetch();
-
-              // Extract the number and increment
-              if (preg_match("/noemail(\d*)@gmail\.com/", $lastEmail, $matches)) {
-                  $increment = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
-                  $email = "noemail" . $increment . "@gmail.com";
-              }
-          } else {
-              $email = "noemail1@gmail.com";
-          }
-          $stmt->close();
-      } else {
-          error_log("Database query error: " . $conn->error);
-      }
-  } else {
-      $email = sanitizeInput($email);
-      if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-          $errors['email'] = "Invalid email format.";
-      } else {
-          // Check if email already exists
-          $sql = "SELECT id FROM passengers WHERE email = ?";
-          $stmt = $conn->prepare($sql);
-          if ($stmt) {
-              $stmt->bind_param("s", $email);
-              $stmt->execute();
-              $stmt->store_result();
-              if ($stmt->num_rows > 0) {
-                  $errors['email'] = "Email address already exists.";
-              }
-              $stmt->close();
-          }
-      }
-  }
 
   // If there are no validation errors, insert the data
   if (empty($errors)) {
-      $sql = "INSERT INTO passengers (firstname, middlename, lastname, qualifier, contact, email, password, role_id) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+      $sql = "INSERT INTO passengers_luggage (passenger_id, driver_id, luggage_code, description, size, status, trip_id) 
+              VALUES (?, ?, ?, ?, ?, ?, ?)";
       $stmt = $conn->prepare($sql);
 
       if ($stmt) {
-          $stmt->bind_param("sssssssi", $firstname, $middlename, $lastname, $qualifier, $contactNo, $email, $hashedPassword, $role);
+          $stmt->bind_param("isssssi", $passenger_id, $driver_id, $luggage_code, $description, $size, $status, $trip_id);
           if ($stmt->execute()) {
               require_once "activityLogsFunction.php";
               saveActivityLog($current_user_role_id, 3, $current_user_id); // Activity ID for adding a user
-              $_SESSION['success'] = "Data inserted successfully!";
+              $_SESSION['success-transaction'] = "Data inserted successfully!";
           } else {
               error_log("Insert error: " . $stmt->error);
           }
@@ -224,11 +173,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       } else {
           error_log("Statement preparation failed: " . $conn->error);
       }
-      header("Location: " . $_SERVER['PHP_SELF']);
-      exit;
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
   }
 }
-
 
 // Check if there's a success message in session and display it
 if (isset($_SESSION['success'])) {
@@ -252,6 +200,23 @@ if (isset($_SESSION['error'])) {
 $conn->close();
 ob_end_flush();
 ?>
+
+<style>
+  #suggestions {
+      width: 100%;
+      border-radius: 4px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .suggestion-item {
+      padding: 10px;
+      cursor: pointer;
+  }
+
+  .suggestion-item:hover {
+      background-color: #f1f1f1;
+  }
+</style>
 
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb">
@@ -292,50 +257,60 @@ ob_end_flush();
         <strong>Add Transaction</strong>
       </div>
       <div class="card-body">
-      <div class="row justify-content-center">
         <!-- Search for Passenger -->
+        <div class="row justify-content-center">
         <div class="col-md-4">
             <div class="form-group d-flex">
                 <input type="text" name="search" id="search" placeholder="Search Passenger" class="form-control mr-2">
-                <button type="button" class="btn btn-primary" id="searchBtn">Search</button>
-                <span class="errors"><?php echo $errors['search'] ?? ''; ?></span> <!-- Displaying any error for 'search' -->
-                <span class="errors" id="searchError"></span> <!-- Displaying any dynamic JS error -->
+                <span class="errors"><?php echo $errors['search'] ?? ''; ?></span>
+                <span class="errors" id="searchError"></span>
             </div>
+            <div id="suggestions" style="display: none; position: absolute; z-index: 1000; background-color: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto;"></div>
         </div>
-      </div>
+        </div>
 
         <!-- Form for displaying search results -->
         <form method="post" action="">
         <div class="row">
           <div class="col-md-6">
             <div class="form-group">
-              <input type="text" name="firstname" placeholder="Firstname" class="form-control" value="<?php echo isset($firstname) ? $firstname : '';?>" readonly>
-              <span class="errors"><?php echo $errors['firstname'] ?? ''; ?></span>
+              <input type="text" name="firstname" placeholder="Firstname" class="form-control" value="" readonly>
             </div>
 
             <div class="form-group">
-              <input type="text" name="middlename" placeholder="Middlename" class="form-control" value="<?php echo isset($middlename) ? $middlename : '';?>" readonly>
-              <span class="errors"><?php echo $errors['middlename'] ?? ''; ?></span>
+              <input type="text" name="middlename" placeholder="Middlename" class="form-control" value="" readonly>
             </div>
 
             <div class="form-group">
-              <input type="text" name="lastname" placeholder="Lastname" class="form-control" value="<?php echo isset($lastname) ? $lastname : '';?>" readonly>
-              <span class="errors"><?php echo $errors['lastname'] ?? ''; ?></span>
+              <input type="text" name="lastname" placeholder="Lastname" class="form-control" value="" readonly>
+            </div>
+
+            <div class="form-group">
+            <input type="text" name="description" id="description" placeholder="Enter Description" class="form-control" required>
             </div>
 
           </div>
           <!-- /.col -->
           <div class="col-md-6">
             <div class="form-group">
-              <input type="text" name="qualifier" placeholder="Qualifier" class="form-control" value="<?php echo isset($qualifier) ? $qualifier : '';?>" readonly>
+              <input type="text" name="qualifier" placeholder="Qualifier" class="form-control" value="" readonly>
             </div>
 
             <div class="form-group">
-              <input type="text" name="contactNo" id="contactNo" placeholder="Contact No" class="form-control" value="<?php echo isset($contact) ? $contact : ''; ?>" readonly>
+              <input type="text" name="contactNo" id="contactNo" placeholder="Contact No" class="form-control" value="" readonly>
             </div>
 
             <div class="form-group">
-              <input type="email" name="email" placeholder="Email" class="form-control" value="<?php echo isset($email) ? $email : '';?>" readonly>
+              <input type="email" name="email" placeholder="Email" class="form-control" value="" readonly>
+            </div>
+
+            <div class="form-group">
+              <select name="size" id="size" class="form-control" required>
+                <option value="" selected disabled>Select Size</option>
+                <option value="Small">Small</option>
+                <option value="Medium">Medium</option>
+                <option value="Large">Large</option>
+              </select>
             </div>
 
           </div>
@@ -344,10 +319,12 @@ ob_end_flush();
         <!-- /.row -->
         <div class="row">
           <div class="col-md-12 text-right">
+            <input type="hidden" name="passenger_id" id="passenger_id" value="<?php echo isset($passenger_id) ? $passenger_id : ''; ?>">
             <button type="submit" class="btn btn-primary">Submit</button>
           </div>
         </div>
-        <?php if (!empty($successMessage)): ?>
+      </form>
+      <?php if (!empty($successMessage)): ?>
           <div class="row mt-3">
             <div class="col-md-12">
               <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -359,7 +336,6 @@ ob_end_flush();
           </div>
           </div>
         <?php endif; ?>
-      </form>
       </div>
       <!-- /.card-body -->
     </div>
@@ -384,42 +360,47 @@ ob_end_flush();
                         <th>Trip ID</th>
                         <th>Date</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        <th>View</th>
                   </tr>
               </thead>
               <tbody>
                   <?php if (isset($data) && is_array($data)): ?>
                     <?php foreach ($data as $row): ?>
-                        <tr>
-                            <td class="hidden"><?php echo htmlspecialchars($row['id']) ?? ''; ?></td>
+                        <tr class="text-center">
+                            <td class="hidden"><?php echo htmlspecialchars($row['luggage_id']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['name']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['contact']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['description']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['size']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['driver_id']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['trip_id']) ?? ''; ?></td>
+                            <td><?php echo $row['driver_id'] == 0 ? "-" : htmlspecialchars($row['driver_id']); ?></td>
+                            <td><?php echo $row['trip_id'] == 0 ? "-" : htmlspecialchars($row['trip_id']); ?></td>
                             <td><?php echo isset($row['created_at']) ? htmlspecialchars(date('Y-m-d', strtotime($row['created_at']))) : ''; ?></td>
-                            <td class="text-center"><?php echo htmlspecialchars($row['status']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
-                            <td class="text-center">
-                            
-                              <div class="dropdown">
-                                <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
-                                  Action
-                                </button>
-                                <div class="dropdown-menu">
-                                  <a class="dropdown-item" href="print_QR_code?id=<?php echo urlencode($row['id']); ?>" target="_blank">Booking QR Code</a>
-                                  <a class="dropdown-item" href="update?id=<?php echo urlencode($row['id']); ?>">Update</a>
-                                  <?php if($row['isActive'] == 1): ?>
-                                  <a class="dropdown-item" href="delete?id=<?php echo urlencode($row['id']); ?>">Delete</a>
-                                  <a class="dropdown-item" href="make_transaction?id=<?php echo urlencode($row['id']); ?>">Book</a>
-                                  <?php elseif ($row['isActive'] == 0): ?>
-                                  <a class="dropdown-item" href="restore?id=<?php echo urlencode($row['id']); ?>">Restore</a>
-                                  <?php endif; ?>
-                                </div>
-                              </div>
-                            
+                            <td>
+                                <?php
+                                if ($row['status'] === 'Pending Verification') {
+                                    echo '<span class="badge badge-warning">Pending Verification</span>';
+                                } elseif ($row['status'] === 'Checked-in') {
+                                    echo '<span class="badge badge-primary">Checked-in</span>';
+                                } elseif ($row['status'] === 'In-transit') {
+                                    echo '<span class="badge badge-info">In-transit</span>';
+                                } elseif ($row['status'] === 'Claimed') {
+                                    echo '<span class="badge badge-success">Claimed</span>';
+                                } elseif ($row['status'] === 'Lost') {
+                                    echo '<span class="badge badge-danger">Lost</span>';
+                                } elseif ($row['status'] === 'Damaged') {
+                                    echo '<span class="badge badge-dark">Damaged</span>';
+                                } else {
+                                    echo '<span class="badge badge-secondary">Unknown</span>';
+                                }
+                                ?>
                             </td>
-                        </tr>
+                            <!-- <td><a href="print_QR_code?id=<?php echo urlencode($row['luggage_id']); ?>" target="_blank" title="View"><i class="fas fa-qrcode"></i></a></td> -->
+                            <td>
+                                <a href="#" class="view-qr-code" data-id="<?php echo $row['luggage_id']; ?>" title="View QR Code">
+                                    <i class="fas fa-qrcode"></i>
+                                </a>
+                            </td>
+                          </tr>
                     <?php endforeach; ?>
                   <?php endif; ?>
               </tbody>
@@ -433,6 +414,31 @@ ob_end_flush();
   <!-- /.container-fluid -->
 </main>
 
+<!-- Modal to display the QR code -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" role="dialog" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="qrCodeModalLabel">Luggage QR Code</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="text-center">
+            <span style="font-size: 20px; font-weight: bold; color: green;">Ready to Scan</span><br>
+            <span style="font-size: 14px;">Please have the driver scan this QR code using the Driver App to match him to the booking.</span>
+        </p>
+        <img id="qrCodeImage" src="" alt="QR Code" style="max-width: 100%; height: auto;" />
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="printQRCode()">Print QR Code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php include "partials/footer.php"; ?>
 
 <!-- Bootstrap JS and any other script -->
@@ -440,6 +446,7 @@ ob_end_flush();
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>    
     <script src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
       $(document).ready(function () {
           $('#tblUserManagement').DataTable({
@@ -467,12 +474,148 @@ ob_end_flush();
         }
       });
     </script>
-    <script>
-        // Search for passengers
-        document.getElementById('searchBtn').addEventListener('click', function () {
-            var searchInput = document.getElementById('search').value;
-            window.location.href = 'luggageManagement.php?search=' + encodeURIComponent(searchInput);
+<script>
+$(document).ready(function () {
+    // Function to fetch passengers based on search input
+    $('#search').on('input', function () {
+        var searchQuery = $(this).val();
+        if (searchQuery.length >= 2) { // Only search if 2 or more characters are entered
+            $.ajax({
+                url: 'searchPassengers.php', // Create this PHP file to handle the search
+                type: 'GET',
+                data: { search: searchQuery },
+                success: function (response) {
+                    var passengers = JSON.parse(response);
+                    var suggestions = $('#suggestions');
+                    suggestions.empty();
+                    if (passengers.length > 0) {
+                        passengers.forEach(function (passenger) {
+                            suggestions.append('<div class="suggestion-item" data-id="' + passenger.id + '">' + passenger.name + '</div>');
+                        });
+                        suggestions.show();
+                    } else {
+                        suggestions.hide();
+                    }
+                }
+            });
+        } else {
+            $('#suggestions').hide();
+        }
+    });
+
+    // Function to handle selection of a passenger
+    $(document).on('click', '.suggestion-item', function () {
+        var passengerId = $(this).data('id');
+        var passengerName = $(this).text();
+        $('#search').val(passengerName);
+        $('#passenger_id').val(passengerId);
+        $('#suggestions').hide();
+
+        // Fetch and display passenger details
+        $.ajax({
+            url: 'getPassengerDetails.php', // Create this PHP file to fetch passenger details
+            type: 'GET',
+            data: { id: passengerId },
+            success: function (response) {
+                var passenger = JSON.parse(response);
+                $('input[name="passenger_id"]').val(passenger.id);
+                $('input[name="firstname"]').val(passenger.firstname);
+                $('input[name="middlename"]').val(passenger.middlename);
+                $('input[name="lastname"]').val(passenger.lastname);
+                $('input[name="qualifier"]').val(passenger.qualifier);
+                $('input[name="contactNo"]').val(passenger.contact);
+                $('input[name="email"]').val(passenger.email);
+            }
         });
-    </script>
-  </body>
+    });
+
+    // Hide suggestions when clicking outside
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#search').length) {
+            $('#suggestions').hide();
+        }
+    });
+});
+</script>
+<script>
+$(document).ready(function () {
+    // Handle click event for QR code icon
+    $(document).on('click', '.view-qr-code', function (e) {
+        e.preventDefault(); // Prevent default link behavior
+
+        var luggageId = $(this).data('id'); // Get the luggage ID from the data-id attribute
+
+        // Show the loader using SweetAlert2
+        Swal.fire({
+            icon: 'info',
+            title: 'Processing...',
+            text: 'Please wait while we fetch the QR code.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+        });
+
+        // Fetch the QR code for the selected luggage
+        $.ajax({
+            url: 'fetch_LuggageQRCode.php', // Create this PHP file to fetch the QR code
+            type: 'GET',
+            data: { id: luggageId },
+            success: function (response) {
+              console.log(response); // Log the response to see what is returned
+              Swal.close(); // Close the loader
+                var qrCode = JSON.parse(response);
+                if (qrCode.success) {
+                    // Update the modal with the fetched QR code
+                    $('#qrCodeImage').attr('src', 'data:image/png;base64,' + qrCode.qr_code);
+                    $('#qrCodeModal').modal('show'); // Show the modal
+                } else {
+                    alert('Failed to fetch QR code.');
+                }
+            },
+            error: function () {
+                alert('An error occurred while fetching the QR code.');
+            }
+        });
+    });
+});
+</script>
+<script>
+function printQRCode() {
+  var qrCodeImage = document.getElementById("qrCodeImage"); // Get the QR code image
+  
+  // Check if the QR code image exists before trying to access its src
+  if (!qrCodeImage) {
+    alert("QR code is not available to print.");
+    return;
+  }
+
+  var qrCodeSrc = qrCodeImage.src; // Get the base64-encoded source of the QR code
+  var printWindow = window.open('', '', 'height=400,width=600'); // Open a new window for printing
+  
+  // Wait for the print window to open and write content
+  printWindow.document.write('<html><head><title>Print QR Code</title>');
+  
+  // Adding styles to match the modal's appearance
+  printWindow.document.write('<style>');
+  printWindow.document.write('body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }');
+  printWindow.document.write('.qr-text { font-size: 20px; font-weight: bold; color: green; }');
+  printWindow.document.write('.qr-description { font-size: 14px; }');
+  printWindow.document.write('.qr-image { margin-top: 20px; }');
+  printWindow.document.write('</style>');
+
+  printWindow.document.write('</head><body>');
+  printWindow.document.write('<p class="qr-text">Luggage QR Code</p>');
+  printWindow.document.write('<p class="qr-description">Please have the driver scan this QR code using the Driver App to match him to the booking.</p>');
+  
+  // Add the QR code image using the base64 source
+  printWindow.document.write('<img class="qr-image" src="' + qrCodeSrc + '" />');
+  printWindow.document.write('</body></html>');
+  printWindow.document.close(); // Close the document to finish writing
+
+  // Trigger the print dialog
+  printWindow.print();
+}
+</script>
+</body>
 </html>

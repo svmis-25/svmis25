@@ -337,6 +337,8 @@ $google_maps_api_key = $_ENV['GOOGLE_MAPS_JAVASCRIPT_API_KEY']; // Fetch from .e
   <!-- /.container-fluid -->
 </main>
 
+<?php include "partials/footer.php"; ?>
+
 <!-- Modal to display the QR code -->
 <div class="modal fade" id="qrCodeModal" tabindex="-1" role="dialog" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">

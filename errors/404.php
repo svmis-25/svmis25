@@ -72,7 +72,7 @@
             If the problem persists, please contact our support team.
         </div>
         <div class="back-home">
-            <a href="/svmis/command_center">Back to Home</a>
+            <a href="command_center">Back to Home</a>
         </div>
     </div>
 </body>

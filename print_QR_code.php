@@ -164,7 +164,7 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
         }
 
         .qr-image {
-            margin-top: 20px;
+            margin-top: 5px;
         }
 
         .print-btn {
@@ -211,11 +211,11 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
             <a href="passengerManagement" class="btn btn-primary">Back to Passenger Management</a>
         <?php else: ?>
             <h1 class="transaction-title">Transaction</h1>
+            <p class="qr-text">QR Code for Booking</p>
+            <p class="qr-description">Please have the driver scan this QR code using the Driver App to match him to the booking.</p>
             <?php if (isset($passenger)): ?>
                 <p class="text-muted">Passenger: <?= $passenger_name ?>/ Contact: <?= $passenger_contact ?></p>
             <?php endif; ?>
-            <p class="qr-text">QR Code for Booking</p>
-            <p class="qr-description">Please have the driver scan this QR code using the Driver App to match him to the booking.</p>
             <img id="qrCodeImage" src="data:image/png;base64,<?= $qr_code ?>" alt="QR Code" class="qr-image">
             <br>
             <!-- Print Button -->

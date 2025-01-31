@@ -369,7 +369,7 @@ ob_end_flush();
                                   Action
                                 </button>
                                 <div class="dropdown-menu">
-                                  <a class="dropdown-item" href="print_QR_code?id=<?php echo urlencode($row['id']); ?>" target="_blank">Print QR Code</a>
+                                  <a class="dropdown-item" href="print_QR_code?id=<?php echo urlencode($row['id']); ?>" target="_blank">Booking QR Code</a>
                                   <a class="dropdown-item" href="update?id=<?php echo urlencode($row['id']); ?>">Update</a>
                                   <?php if($row['isActive'] == 1): ?>
                                   <a class="dropdown-item" href="delete?id=<?php echo urlencode($row['id']); ?>">Delete</a>

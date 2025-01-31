@@ -62,7 +62,7 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
         data: "$transactionNo-$passenger_id-$origin-$destination",
         encoding: new Encoding('UTF-8'),
         errorCorrectionLevel: ErrorCorrectionLevel::Low,
-        size: 300,
+        size: 250,
         margin: 10,
         roundBlockSizeMode: RoundBlockSizeMode::Margin,
         foregroundColor: new Color(0, 0, 0), // Black color for QR code blocks

@@ -399,9 +399,9 @@ ob_end_flush();
                             <td><?php echo htmlspecialchars($row['middlename']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['lastname']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['qualifier']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['contactNo']) ?? ''; ?></td>
+                            <td><?php echo htmlspecialchars($row['contact']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['email']) ?? ''; ?></td>
-                            <td class="text-center"><?php echo htmlspecialchars($row['isActive']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
+                            <td class="text-center"><?php echo htmlspecialchars($row['is_active']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
                             <td class="text-center">
                             
                               <div class="dropdown">

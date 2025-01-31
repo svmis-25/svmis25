@@ -210,7 +210,7 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
             <br>
             <a href="passengerManagement" class="btn btn-primary">Back to Passenger Management</a>
         <?php else: ?>
-            <h1 class="transaction-title">QR Code</h1>
+            <h1 class="transaction-title">Transaction</h1>
             <?php if (isset($passenger)): ?>
                 <p class="text-muted">Passenger: <?= $passenger_name ?>/ Contact: <?= $passenger_contact ?></p>
             <?php endif; ?>

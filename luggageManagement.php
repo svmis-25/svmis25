@@ -93,10 +93,11 @@ if ($stmt->num_rows > 0) {
             'status' => $status,
             'created_at' => $created_at,
             'trip_id' => $trip_id,
-            'firstname' => $firstname,
-            'middlename' => $middlename,
-            'lastname' => $lastname,
-            'qualifier' => $qualifier,
+            'name' => $firstname . ' ' . $middlename . ' ' . $lastname . ' ' . $qualifier, 
+            // 'firstname' => $firstname,
+            // 'middlename' => $middlename,
+            // 'lastname' => $lastname,
+            // 'qualifier' => $qualifier,
             'contact' => $contact,
             'email' => $email,
             'is_active' => $is_active
@@ -378,16 +379,16 @@ ob_end_flush();
             <table id="tblUserManagement" class="table table-striped table-bordered table-sm table-hover">
               <thead>
                   <tr class="text-center">
-                      <!-- <th class="hidden">ID</th> -->
-                      <th class="hidden">ID</th>
-                      <th>Firstname</th>
-                      <th>Middlename</th>
-                      <th>Lastname</th>
-                      <th>Qualifier</th>
-                      <th>Contact No</th>
-                      <th>Email</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                        <th class="hidden">ID</th>
+                        <th>Name</th>
+                        <th>Contact No</th>
+                        <th>Description</th>
+                        <th>Size</th>
+                        <th>Driver</th>
+                        <th>Trip ID</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
                   </tr>
               </thead>
               <tbody>
@@ -395,13 +396,14 @@ ob_end_flush();
                     <?php foreach ($data as $row): ?>
                         <tr>
                             <td class="hidden"><?php echo htmlspecialchars($row['id']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['firstname']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['middlename']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['lastname']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['qualifier']) ?? ''; ?></td>
+                            <td><?php echo htmlspecialchars($row['name']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['contact']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['email']) ?? ''; ?></td>
-                            <td class="text-center"><?php echo htmlspecialchars($row['is_active']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
+                            <td><?php echo htmlspecialchars($row['description']) ?? ''; ?></td>
+                            <td><?php echo htmlspecialchars($row['size']) ?? ''; ?></td>
+                            <td><?php echo htmlspecialchars($row['driver']) ?? ''; ?></td>
+                            <td><?php echo htmlspecialchars($row['trip_id']) ?? ''; ?></td>
+                            <td><?php echo isset($row['created_at']) ? htmlspecialchars(date('Y-m-d', strtotime($row['created_at']))) : ''; ?></td>
+                            <td class="text-center"><?php echo htmlspecialchars($row['status']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
                             <td class="text-center">
                             
                               <div class="dropdown">

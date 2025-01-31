@@ -39,6 +39,8 @@ if (isset($_GET['id'])){
 
     if ($result->num_rows === 1){
         $passenger = $result->fetch_assoc();
+        $passenger_name = $passenger['firstname'] . " " . $passenger['middlename'] . " " . $passenger['lastname'] . " " . $passenger['qualifier'];
+        $passenger_contact = $passenger['contact'];
     } else {
         echo "Passenger not found!";
         exit;
@@ -199,6 +201,9 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
     <!-- Display message if no active transaction -->
         <?php if ($noTransactionMessage): ?>
             <h1 class="no-transaction-title">No Transaction Found</h1>
+            <?php if (isset($passenger)): ?>
+                <p class="text-muted">Passenger: <?= $passenger_name ?>/ Contact: <?= $passenger_contact ?></p>
+            <?php endif; ?>
             <p class="no-transaction-message"><?= $noTransactionMessage ?></p>
             <br>
             <img src="assets/images/result-not-found.gif" alt="No Transaction" style="width: 300px; height: 300px;">
@@ -206,6 +211,9 @@ function generateQRCode($transactionNo, $passenger_id, $origin, $destination) {
             <a href="passengerManagement" class="btn btn-primary">Back to Passenger Management</a>
         <?php else: ?>
             <h1 class="transaction-title">QR Code</h1>
+            <?php if (isset($passenger)): ?>
+                <p class="text-muted">Passenger: <?= $passenger_name ?>/ Contact: <?= $passenger_contact ?></p>
+            <?php endif; ?>
             <p class="qr-text">QR Code for Booking</p>
             <p class="qr-description">Please have the driver scan this QR code using the Driver App to match him to the booking.</p>
             <img id="qrCodeImage" src="data:image/png;base64,<?= $qr_code ?>" alt="QR Code" class="qr-image">

@@ -84,23 +84,19 @@ $data = []; // Initialize an empty array to hold the data
 if ($stmt->num_rows > 0) {
     while ($stmt->fetch()) {
         $data[] = [
-            'luggage_id' => $luggage_id,
-            'passenger_id' => $passenger_id,
-            'driver_id' => $driver_id,
-            'luggage_code' => $luggage_code,
-            'description' => $description,
-            'size' => $size,
-            'status' => $status,
-            'created_at' => $created_at,
-            'trip_id' => $trip_id,
+            'luggage_id' => $luggage_id ?? '',
+            'passenger_id' => $passenger_id ?? '',
+            'driver_id' => $driver_id ?? '',
+            'luggage_code' => $luggage_code ?? '',
+            'description' => $description ?? '',
+            'size' => $size ?? '',
+            'status' => $status ?? '',
+            'created_at' => $created_at ?? '',
+            'trip_id' => $trip_id ?? '',
             'name' => $firstname . ' ' . $middlename . ' ' . $lastname . ' ' . $qualifier, 
-            // 'firstname' => $firstname,
-            // 'middlename' => $middlename,
-            // 'lastname' => $lastname,
-            // 'qualifier' => $qualifier,
-            'contact' => $contact,
-            'email' => $email,
-            'is_active' => $is_active
+            'contact' => $contact ?? '',
+            'email' => $email ?? '',
+            'is_active' => $is_active ?? '',
         ];
     }
 }
@@ -400,7 +396,7 @@ ob_end_flush();
                             <td><?php echo htmlspecialchars($row['contact']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['description']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['size']) ?? ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['driver']) ?? ''; ?></td>
+                            <td><?php echo htmlspecialchars($row['driver_id']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['trip_id']) ?? ''; ?></td>
                             <td><?php echo isset($row['created_at']) ? htmlspecialchars(date('Y-m-d', strtotime($row['created_at']))) : ''; ?></td>
                             <td class="text-center"><?php echo htmlspecialchars($row['status']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>

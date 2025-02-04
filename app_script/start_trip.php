@@ -168,6 +168,28 @@ if (is_null($trip_id)) {
             "message" => "Trip started successfully!",
             "trip_id" => $trip_id
         ]);
+
+        // Update the driver's status to 'On Trip'
+        $update_driver_sql = "UPDATE drivers SET status = 'On Trip' WHERE id = ?";
+        $update_driver_stmt = $conn->prepare($update_driver_sql);
+        $update_driver_stmt->bind_param("i", $driver_id);
+        $update_driver_stmt->execute();
+        $update_driver_stmt->close();
+
+        // Update the vehicle's status to 'On Trip' --- Not working
+        $update_vehicle_sql = "UPDATE vans SET status = 'On Trip' WHERE driver_id = ?";
+        $update_vehicle_stmt = $conn->prepare($update_vehicle_sql);
+        $update_vehicle_stmt->bind_param("i", $driver_id);
+        $update_vehicle_stmt->execute();
+        $update_vehicle_stmt->close();
+
+        // Update the luggage Trip ID -- Not working
+        $update_luggage_sql = "UPDATE passengers_luggage SET trip_id = ? SET status = 'In-transit' WHERE driver_id = ? AND trip_id = 0";
+        $update_luggage_stmt = $conn->prepare($update_luggage_sql);
+        $update_luggage_stmt->bind_param("si", $trip_id, $driver_id);
+        $update_luggage_stmt->execute();
+        $update_luggage_stmt->close();
+
     } else {
         echo json_encode(["status" => "error", "message" => "Failed to start trip"]);
     }

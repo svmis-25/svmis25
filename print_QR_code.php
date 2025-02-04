@@ -50,7 +50,7 @@ if (isset($_GET['id'])){
     $noTransactionMessage = ""; // Initialize an empty string for the message
 
     // Fetch the latest transaction for the passenger where driver_id = 0, active = 1, and is_complete = 0
-    $sql = "SELECT * FROM transactions WHERE passenger_id = ? AND driver_id = 0 AND is_active = 1 AND is_complete = 0 ORDER BY id DESC LIMIT 1";
+    $sql = "SELECT * FROM transactions WHERE passenger_id = ? AND is_active = 1 AND is_complete = 0 ORDER BY id DESC LIMIT 1";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $id);
     $stmt->execute();

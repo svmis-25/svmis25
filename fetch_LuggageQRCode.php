@@ -17,7 +17,7 @@ if (isset($_GET['id'])) {
     $luggageId = $_GET['id'];
 
     // Fetch the luggage details from the database
-    $sql = "SELECT passenger_id, luggage_code FROM passengers_luggage WHERE id = ?";
+    $sql = "SELECT luggage_code FROM passengers_luggage WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $luggageId);
     $stmt->execute();
@@ -25,20 +25,14 @@ if (isset($_GET['id'])) {
 
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $passengerId = $row['passenger_id'];
         $luggageCode = $row['luggage_code'];
 
-        // Generate the QR code
-        // $qrCode = new QrCode("$passengerId-$luggageCode");
-        // $writer = new PngWriter();
-        // $result = $writer->write($qrCode);
-        // $base64QrCode = base64_encode($result->getString());
-
+        // Generate the QR code with only the luggage_code
         $qrCode = new QrCode(
-            data: "$passengerId-$luggageCode",
+            data: "$luggageCode",  // Only include luggage_code
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::Low,
-            size: 250,
+            size: 300,
             margin: 10,
             roundBlockSizeMode: RoundBlockSizeMode::Margin,
             foregroundColor: new Color(0, 0, 0), // Black color for QR code blocks

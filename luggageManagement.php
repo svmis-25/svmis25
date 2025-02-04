@@ -58,26 +58,34 @@ $sql = "SELECT
             passengers.qualifier,
             passengers.contact,
             passengers.email,
-            passengers.is_active
+            passengers.is_active,
+            drivers.id AS driverID,
+            drivers.firstname AS driver_firstname,
+            drivers.middlename AS driver_middlename,
+            drivers.lastname AS driver_lastname,
+            drivers.qualifier AS driver_qualifier
         FROM passengers_luggage 
-        LEFT JOIN passengers ON passengers_luggage.passenger_id = passengers.id";
+        LEFT JOIN passengers ON passengers_luggage.passenger_id = passengers.id
+        LEFT JOIN drivers ON passengers_luggage.driver_id = drivers.id";
+
 
 // Check if search query exists
-if (isset($_GET['search']) && !empty($_GET['search'])) {
-    $search = sanitizeInput($_GET['search']);
-    $sql .= " WHERE passengers.firstname LIKE ? OR passengers.middlename LIKE ? OR passengers.lastname LIKE ? OR passengers.qualifier LIKE ? OR passengers.contact LIKE ? OR passengers.email LIKE ?";
+// if (isset($_GET['search']) && !empty($_GET['search'])) {
+//     $search = sanitizeInput($_GET['search']);
+//     $sql .= " WHERE passengers.firstname LIKE ? OR passengers.middlename LIKE ? OR passengers.lastname LIKE ? OR passengers.qualifier LIKE ? OR passengers.contact LIKE ? OR passengers.email LIKE ?";
+//     $stmt = $conn->prepare($sql);
+//     $searchTerm = "%$search%";  // Add wildcard for LIKE query
+//     $stmt->bind_param("ssssss", $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
+// } else {
     $stmt = $conn->prepare($sql);
-    $searchTerm = "%$search%";  // Add wildcard for LIKE query
-    $stmt->bind_param("ssssss", $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
-} else {
-    $stmt = $conn->prepare($sql);
-}
+// }
 
 $stmt->execute();
 $stmt->store_result();
 
 // Bind result variables (adjusted based on SELECT query columns)
-$stmt->bind_result($luggage_id, $passenger_id, $driver_id, $luggage_code, $description, $size, $status, $created_at, $trip_id, $passengerID, $firstname, $middlename, $lastname, $qualifier, $contact, $email, $is_active);
+$stmt->bind_result($luggage_id, $passenger_id, $driver_id, $luggage_code, $description, $size, $status, $created_at, $trip_id, $passengerID, $firstname, $middlename, $lastname, $qualifier, $contact, $email, $is_active,
+$driverID, $driver_firstname, $driver_middlename, $driver_lastname, $driver_qualifier);
 
 $data = []; // Initialize an empty array to hold the data
 
@@ -86,7 +94,7 @@ if ($stmt->num_rows > 0) {
         $data[] = [
             'luggage_id' => $luggage_id ?? '',
             'passenger_id' => $passenger_id ?? '',
-            'driver_id' => $driver_id ?? '',
+            'driver_id' => $driver_firstname . ' ' . $driver_middlename . ' ' . $driver_lastname . ' ' . $driver_qualifier ?? '',
             'luggage_code' => $luggage_code ?? '',
             'description' => $description ?? '',
             'size' => $size ?? '',
@@ -357,7 +365,7 @@ ob_end_flush();
                         <th>Description</th>
                         <th>Size</th>
                         <th>Driver</th>
-                        <th>Trip ID</th>
+                        <th class="hidden">Trip ID</th>
                         <th>Date</th>
                         <th>Status</th>
                         <th>View</th>
@@ -373,7 +381,7 @@ ob_end_flush();
                             <td><?php echo htmlspecialchars($row['description']) ?? ''; ?></td>
                             <td><?php echo htmlspecialchars($row['size']) ?? ''; ?></td>
                             <td><?php echo $row['driver_id'] == 0 ? "-" : htmlspecialchars($row['driver_id']); ?></td>
-                            <td><?php echo $row['trip_id'] == 0 ? "-" : htmlspecialchars($row['trip_id']); ?></td>
+                            <td class="hidden"><?php echo $row['trip_id'] == 0 ? "-" : htmlspecialchars($row['trip_id']); ?></td>
                             <td><?php echo isset($row['created_at']) ? htmlspecialchars(date('Y-m-d', strtotime($row['created_at']))) : ''; ?></td>
                             <td>
                                 <?php
@@ -565,6 +573,7 @@ $(document).ready(function () {
               console.log(response); // Log the response to see what is returned
               Swal.close(); // Close the loader
                 var qrCode = JSON.parse(response);
+                console.log("Base64 QR Code: ", qrCode.qr_code); // Log the base64 QR code
                 if (qrCode.success) {
                     // Update the modal with the fetched QR code
                     $('#qrCodeImage').attr('src', 'data:image/png;base64,' + qrCode.qr_code);
@@ -616,6 +625,15 @@ function printQRCode() {
   // Trigger the print dialog
   printWindow.print();
 }
+</script>
+<script>
+  $(document).ready(function() {
+    // Listen for the modal close event
+    $('#qrCodeModal').on('hidden.bs.modal', function() {
+      // Redirect to the passengerManagement page
+      window.location.href = 'luggageManagement'; // Adjust the URL as needed
+    });
+  });
 </script>
 </body>
 </html>

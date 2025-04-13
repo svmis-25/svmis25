@@ -302,19 +302,23 @@ function getTripHistory($conn) {
                                         ?>
                                     </td>
                                     <td>
-                                    <div class="dropdown">
-                                        <button class="btn btn-primary dropdown-toggle" type="button" id="driverActions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        Actions
-                                        </button>
-                                        <div class="dropdown-menu">
-                                            <a class="dropdown-item" href="driver_update?id=<?php echo urlencode($driver['id']); ?>">Update</a>
-                                            <?php if($driver['is_active'] == 1): ?>
-                                            <a class="dropdown-item" href="driver_delete?id=<?php echo urlencode($driver['id']); ?>">Delete</a>
-                                            <?php elseif ($driver['is_active'] == 0): ?>
-                                            <a class="dropdown-item" href="driver_restore?id=<?php echo urlencode($driver['id']); ?>">Restore</a>
-                                            <?php endif; ?>
+                                    <?php if ($driver['status'] !== 'on trip'): ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-primary dropdown-toggle" type="button" id="driverActions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            Actions
+                                            </button>
+                                            <div class="dropdown-menu">
+                                                <a class="dropdown-item" href="driver_update?id=<?php echo urlencode($driver['id']); ?>">Update</a>
+                                                <?php if($driver['is_active'] == 1): ?>
+                                                <a class="dropdown-item" href="driver_delete?id=<?php echo urlencode($driver['id']); ?>">Delete</a>
+                                                <?php elseif ($driver['is_active'] == 0): ?>
+                                                <a class="dropdown-item" href="driver_restore?id=<?php echo urlencode($driver['id']); ?>">Restore</a>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
-                                    </div>
+                                    <?php else: ?>
+                                        <button class="btn btn-info" disabled>On Trip</button>
+                                    <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

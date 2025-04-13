@@ -186,7 +186,7 @@ if($_SERVER["REQUEST_METHOD"] === "POST"){
     if (isset($address)){
         $address = sanitizeInput($address);
         // validate address
-        if (!preg_match("/^[a-zA-Z0-9-', ]*$/", $address) || empty($address)) {
+        if (!preg_match("/^[a-zA-Z0-9-',. ]*$/", $address) || empty($address)) {
             $errors['address'] = "Only letters, numbers and white space allowed in address.";
         }
     }

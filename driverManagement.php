@@ -40,7 +40,7 @@ function sanitizeInput($input){
   Query: Fetch Roles from Database
 =====================================*/
 $roles = [];
-$sql = "SELECT id, role_name FROM ref_roles WHERE id NOT IN (3, 4)";
+$sql = "SELECT id, role_name FROM ref_roles WHERE id NOT IN (1, 2, 4)";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0){
@@ -64,38 +64,42 @@ if ($result->num_rows > 0){
   Query: Retrieve Data from Database
 =====================================*/
 $sql = "SELECT 
-          users.id AS user_id, 
-          users.firstname, 
-          users.middlename, 
-          users.lastname, 
-          users.qualifier, 
-          users.contact, 
-          users.email,
-          users.company_id,
-          users.role_id, 
-          users.is_active, 
+          drivers.id AS driver_id, 
+          drivers.firstname, 
+          drivers.middlename, 
+          drivers.lastname, 
+          drivers.qualifier, 
+          drivers.age,
+          drivers.address,
+          drivers.company_id,
+          drivers.contact, 
+          drivers.email, 
+          drivers.role_id, 
+          drivers.is_active, 
           ref_roles.role_name,
           ref_companies.company_name
-        FROM users 
-        LEFT JOIN ref_roles ON users.role_id = ref_roles.id
-        LEFT JOIN ref_companies ON users.company_id = ref_companies.id";
+        FROM drivers 
+        LEFT JOIN ref_roles ON drivers.role_id = ref_roles.id
+        LEFT JOIN ref_companies ON drivers.company_id = ref_companies.id";
 
 // Fetch data
 $result = $conn->query($sql);
 
-// Store data in an array
+// Store Data
 $data = []; // Initialize data
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $data[] = [
-            'id' => $row['user_id'],
+            'id' => $row['driver_id'],
             'firstname' => $row['firstname'],
-            'middlename' => $row['middlename'] ?? '',
+            'middlename' => $row['middlename'],
             'lastname' => $row['lastname'],
-            'qualifier' => $row['qualifier'] ?? '',
-            'company' => $row['company_name'],
+            'qualifier' => $row['qualifier'],
+            'age' => $row['age'],
             'contactNo' => $row['contact'],
+            'address' => $row['address'],
             'email' => $row['email'],
+            'company' => $row['company_name'],
             'role' => $row['role_name'],
             'isActive' => $row['is_active'],
         ];
@@ -115,10 +119,12 @@ $errors = []; // Initialize Array to hold error messages
 
 if($_SERVER["REQUEST_METHOD"] === "POST"){
     $firstname = $_POST['firstname'];
-    $middlename = $_POST['middlename'];
+    $middlename = $_POST['middlename'] ?? "";
     $lastname = $_POST['lastname'];
-    $qualifier = $_POST['qualifier'];
+    $qualifier = $_POST['qualifier'] ?? "";
+    $age = $_POST['age'];
     $contactNo = $_POST['contactNo'];
+    $address = $_POST['address'];
     $email = $_POST['email'];
     $company = $_POST['company'];
     $role = $_POST['role'];
@@ -158,12 +164,30 @@ if($_SERVER["REQUEST_METHOD"] === "POST"){
         $errors['qualifier'] = "Invalid qualifier. Valid qualifiers are: " . implode(", ", $valid_qualifiers);
     }
 
+    // Validate age
+    if (isset($age)){
+        $age = sanitizeInput($age);
+        // validate age
+        if (!preg_match("/^[0-9]{1,3}$/", $age) || empty($age)) {
+            $errors['age'] = "Invalid age.";
+        }
+    }
+
     // Validate contact number
     if (isset($contactNo)){
         $contactNo = sanitizeInput($contactNo);
         // validate contact
         if (!preg_match("/^[0-9]{10,15}$/", $contactNo) || empty($contactNo)) {
             $errors['contact'] = "Invalid contact number.";
+        }
+    }
+
+    // Validate address
+    if (isset($address)){
+        $address = sanitizeInput($address);
+        // validate address
+        if (!preg_match("/^[a-zA-Z0-9-', ]*$/", $address) || empty($address)) {
+            $errors['address'] = "Only letters, numbers and white space allowed in address.";
         }
     }
   
@@ -199,24 +223,24 @@ if($_SERVER["REQUEST_METHOD"] === "POST"){
         $errors['role'] = "Role is required.";
     }
 
-  // Load .env variables using phpdotenv (same as in config.php)
-  $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-  $dotenv->load();
+    // Load .env variables using phpdotenv (same as in config.php)
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
 
-  // Get the password from environment variables
-  $password = $_ENV['DEFAULT_PASSWORD']; // or getenv('DEFAULT_PASSWORD')
-  $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    // Get the password from environment variables
+    $password = $_ENV['DEFAULT_PASSWORD']; // or getenv('DEFAULT_PASSWORD')
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
     // If there are no errors, insert data into database
     if (empty($errors)) { 
         // Prepare the SQL query to insert data
-        $sql = "INSERT INTO users (firstname, middlename, lastname, qualifier, contact, email, password, company_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO drivers (firstname, middlename, lastname, qualifier, age, `address`, company_id, contact, email, password, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         // Create and prepare statement 
         $stmt = $conn->prepare($sql);
 
         if ($stmt) {
-          $stmt->bind_param("sssssssii", $firstname, $middlename, $lastname, $qualifier, $contactNo, $email, $hashedPassword, $company, $role);
+          $stmt->bind_param("ssssisisssi", $firstname, $middlename, $lastname, $qualifier, $age, $address, $company, $contactNo, $email, $hashedPassword, $role);
       
           if (!$stmt->execute()) {
               error_log("Database error: " . $stmt->error);
@@ -224,7 +248,7 @@ if($_SERVER["REQUEST_METHOD"] === "POST"){
           } else {
               //Record Activity
               require_once "activityLogsFunction.php";
-              $activity_id = 3; // represents the activity ID for adding a new user
+              $activity_id = 13; // represents the activity ID for adding a new driver
               saveActivityLog($current_user_role_id, $activity_id, $current_user_id);
 
               // Set session success message
@@ -260,7 +284,7 @@ ob_end_flush();
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
-    <li class="breadcrumb-item active" aria-current="page"><h3>User Management</h3></li>
+    <li class="breadcrumb-item active" aria-current="page"><h3>Driver Management</h3></li>
   </ol>
 </nav>
 
@@ -269,7 +293,7 @@ ob_end_flush();
   <div class="container-fluid">
     <div class="card border-primary mb-5">
       <div class="card-header" style="color: white; background-color: #007BFF;">
-        <strong>Add User</strong>
+        <strong>Add Driver</strong>
       </div>
       <div class="card-body">
         <form method="post" action="">
@@ -294,19 +318,24 @@ ob_end_flush();
               <input type="text" name="qualifier" placeholder="Qualifier" class="form-control" value="<?php echo isset($qualifier) ? $qualifier : '';?>">
               <span class="errors"><?php echo $errors['qualifier'] ?? ''; ?></span>
             </div>
+
+            <div class="form-group">
+              <input type="number" name="age" placeholder="Age" class="form-control" value="<?php echo isset($age) ? $age : '';?>" min="1" max="100">
+              <span class="errors"><?php echo $errors['age'] ?? ''; ?></span>
+            </div>
           </div>
           <!-- /.col -->
           <div class="col-md-6">
-            <!-- <div class="form-group">
-              <input type="text" name="contactNo" placeholder="Contact No" class="form-control" value="<?php echo isset($contactNo) ? $contactNo : '';?>">
-              <span class="errors"><?php echo $errors['contact'] ?? ''; ?></span>
-            </div> -->
-
             <div class="form-group">
               <input type="text" name="contactNo" id="contactNo" placeholder="Contact No" class="form-control" 
                 value="<?php echo isset($contactNo) ? $contactNo : ''; ?>">
               <span class="errors"><?php echo $errors['contact'] ?? ''; ?></span>
               <span class="errors" id="contactError"></span>
+            </div>
+
+            <div class="form-group">
+              <input type="text" name="address" placeholder="Address" class="form-control" value="<?php echo isset($address) ? $address : '';?>">
+              <span class="errors"><?php echo $errors['address'] ?? ''; ?></span>
             </div>
 
             <div class="form-group">
@@ -326,9 +355,12 @@ ob_end_flush();
 
             <div class="form-group">
               <select name="role" class="form-control">
-                <option value="" selected disbaled>Select Role</option>
+                <option value="" disabled>Select Role</option>
                 <?php foreach ($roles as $role): ?>
-                  <option value="<?php echo $role['id']; ?>"><?php echo $role['role_name']; ?></option>
+                  <option value="<?php echo $role['id']; ?>" 
+                    <?php echo ($role['id'] == 3) ? 'selected' : ''; ?>
+                  ><?php echo $role['role_name']; ?>
+                  </option>
                 <?php endforeach; ?>
               </select>
               <span class="errors"><?php echo $errors['role'] ?? ''; ?></span>
@@ -364,7 +396,7 @@ ob_end_flush();
     <div class="card border-secondary mb-3">
       <div class="card-header" style="color: white; background-color: #6C757D;">
         <!-- <strong>List of Users <?php echo $current_user_id; ?></strong> -->
-        <strong>List of Users</strong>
+        <strong>List of Drivers</strong>
       </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -377,6 +409,8 @@ ob_end_flush();
                       <th>Middlename</th>
                       <th>Lastname</th>
                       <th>Qualifier</th>
+                      <th>Age</th>
+                      <th>Address</th>
                       <th>Contact No</th>
                       <th>Email</th>
                       <th>Company</th>
@@ -389,15 +423,17 @@ ob_end_flush();
                   <?php if (isset($data) && is_array($data)): ?>
                     <?php foreach ($data as $row): ?>
                         <tr>
-                            <td class="hidden"><?php echo htmlspecialchars($row['id']) ?? ''; ?></td>
+                            <td class="hidden"><?php echo htmlspecialchars($row['id'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['firstname'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['middlename'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['lastname'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['qualifier'] ?? ''); ?></td>
+                            <td><?php echo htmlspecialchars($row['age'] ?? ''); ?></td>
+                            <td><?php echo htmlspecialchars($row['address'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['contactNo'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['email'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['company'] ?? ''); ?></td>
-                            <td class="text-center"><?php echo htmlspecialchars($row['role'] ?? ''); ?></td>
+                            <td class="text-center"><?php echo htmlspecialchars($row['role']) ?? ''; ?></td>
                             <td class="text-center"><?php echo htmlspecialchars($row['isActive']) ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
                             <td class="text-center">
                             <?php if ($row['id'] != $current_user_id): ?>
@@ -406,11 +442,11 @@ ob_end_flush();
                                   Action
                                 </button>
                                 <div class="dropdown-menu">
-                                  <a class="dropdown-item" href="user_update?id=<?php echo urlencode($row['id']); ?>">Update</a>
+                                  <a class="dropdown-item" href="driver_update?id=<?php echo urlencode($row['id']); ?>">Update</a>
                                   <?php if($row['isActive'] == 1): ?>
-                                  <a class="dropdown-item" href="user_delete?id=<?php echo urlencode($row['id']); ?>">Delete</a>
+                                  <a class="dropdown-item" href="driver_delete?id=<?php echo urlencode($row['id']); ?>">Delete</a>
                                   <?php elseif ($row['isActive'] == 0): ?>
-                                  <a class="dropdown-item" href="user_restore?id=<?php echo urlencode($row['id']); ?>">Restore</a>
+                                  <a class="dropdown-item" href="driver_restore?id=<?php echo urlencode($row['id']); ?>">Restore</a>
                                   <?php endif; ?>
                                 </div>
                               </div>

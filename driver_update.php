@@ -56,12 +56,26 @@ function validatePassword($password){
 =====================================*/
 
 $roles = [];
-$sql = "SELECT id, role_name FROM ref_roles";
+$sql = "SELECT id, role_name FROM ref_roles WHERE id NOT IN (1, 2, 4)";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0){
   while($row = $result->fetch_assoc()){
     $roles[] = $row;
+  }
+}
+
+/*===================================
+  Query: Fetch Companies from Database
+=====================================*/
+
+$companies = [];
+$sql = "SELECT * FROM ref_companies";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0){
+  while($row = $result->fetch_assoc()){
+    $companies[] = $row;
   }
 }
 
@@ -73,7 +87,7 @@ if ($result->num_rows > 0){
 		$id = intval($_GET['id']);
 
 		// Fetch the existing data for the user
-		$sql = "SELECT firstname, middlename, lastname, qualifier, contact, email, role_id FROM users WHERE id = ?";
+		$sql = "SELECT firstname, middlename, lastname, qualifier, contact, age, `address`, email, company_id, role_id FROM drivers WHERE id = ?";
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param("i", $id);
 		$stmt->execute();
@@ -105,9 +119,11 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
 	$middlename = $_POST['middlename'];
 	$lastname = $_POST['lastname'];
 	$qualifier = $_POST['qualifier'];
-	$contactNo = $_POST['contactNo'];
+  $age = $_POST['age'];
+	$contact = $_POST['contactNo'];
+  $address = $_POST['address'];
 	$email = $_POST['email'];
-	$password = $_POST['password'];
+	$company = $_POST['company'];
 	$role = $_POST['role'];
 
 	// Define valid qualifiers
@@ -146,6 +162,14 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
         $errors['qualifier'] = "Invalid qualifier. Valid qualifiers are: " . implode(", ", $valid_qualifiers);
     }
 
+    // Validate address
+    if (isset($address)){
+      $address = sanitizeInput($address);
+      if (!preg_match("/^[a-zA-Z0-9-',. ]*$/", $address) || empty($address)) {
+          $errors['address'] = "Only letters, numbers and white space allowed in address.";
+      }
+    }
+
     // Validate contact number
     if (isset($contact)){
         $contact = sanitizeInput($contact);
@@ -164,14 +188,11 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
         }
     }
 
-    // Validate password
-    if (isset($password)){
-        // validate email
-        if (!validatePassword($password)) {
-            $errors['password'] = "Password must be at least 12 characters long and contain upper and lower case letters, numbers, and special characters";
-        } else {
-        	// HASH PASSWORD for security of 
-        	$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    // Validate age
+    if (isset($age)){
+        $age = sanitizeInput($age);
+        if (!preg_match("/^[0-9]{1,3}$/", $age) || empty($age)) {
+            $errors['age'] = "Invalid age.";
         }
     }
 
@@ -180,24 +201,29 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
         $errors['role'] = "Role is required.";
     }
 
+    // Validate company
+    if (!isset($company) || $company === ""){
+        $errors['company'] = "Company is required.";
+    }
+
     // If there are no errors, display data
     if (empty($errors)) {
     	// Prepare the SQL query to insert data
-		$sql = "UPDATE users SET firstname = ?, middlename = ?, lastname = ?, qualifier = ?, contact = ?, email = ?, password = ?, role_id = ? WHERE id = ?";
+		$sql = "UPDATE drivers SET firstname = ?, middlename = ?, lastname = ?, qualifier = ?, contact = ?, email = ?, age = ?, `address` = ?, company_id = ?, role_id = ? WHERE id = ?";
 
 		//Create and prepare statement 
 		$stmt = $conn->prepare($sql);
 
 		if($stmt){
 			//Bind parameters
-			$stmt->bind_param("sssssssii", $firstname, $middlename, $lastname, $qualifier, $contactNo, $email, $hashedPassword, $role, $id);
+			$stmt->bind_param("ssssssisiii", $firstname, $middlename, $lastname, $qualifier, $contact, $email, $age, $address, $company, $role, $id);
 
 			// check if the statement is executed
 			if($stmt->execute()){
 
         //Record Activity
         require_once "activityLogsFunction.php";
-        $activity_id = 4; // represents the activity ID for updating user record
+        $activity_id = 14; // represents the activity ID for updating driver record
         saveActivityLog($current_user_role_id, $activity_id, $current_user_id);
 
 				// echo "Data updated successfully!";
@@ -211,7 +237,7 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
 			$stmt->close();
 		}
 		// Redirect to index after form submission
-		header("Location: userManagement");
+		header("Location: driverManagement");
 	 }
 }
 
@@ -223,7 +249,7 @@ ob_end_flush();
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
-    <li class="breadcrumb-item active" aria-current="page"><h3>User Management</h3></li>
+    <li class="breadcrumb-item active" aria-current="page"><h3>Driver Management</h3></li>
   </ol>
 </nav>
 
@@ -232,7 +258,7 @@ ob_end_flush();
   <div class="container-fluid">
     <div class="card border-success mb-5">
       <div class="card-header" style="color: white; background-color: #28A745;">
-        <strong>Update User Data</strong>
+        <strong>Update Driver Data</strong>
       </div>
       <div class="card-body">
         <form method="post" action="">
@@ -258,19 +284,24 @@ ob_end_flush();
               <input type="text" name="qualifier" placeholder="Qualifier" class="form-control" value="<?php echo isset($user['qualifier']) ? $user['qualifier'] : '';?>">
               <span class="errors"><?php echo $errors['qualifier'] ?? ''; ?></span>
             </div>
+
+            <div class="form-group">
+              <input type="number" name="age" placeholder="Age" class="form-control" value="<?php echo isset($user['age']) ? $user['age'] : '';?>" min="1" max="100">
+              <span class="errors"><?php echo $errors['age'] ?? ''; ?></span>
+            </div>
           </div>
           <!-- /.col -->
           <div class="col-md-6">
-            <!-- <div class="form-group">
-              <input type="text" name="contactNo" placeholder="Contact No" class="form-control" value="<?php echo isset($user['contactNo']) ? $user['contactNo'] : '';?>">
-              <span class="errors"><?php echo $errors['contact'] ?? ''; ?></span>
-            </div> -->
-
             <div class="form-group">
               <input type="text" name="contactNo" id="contactNo" placeholder="Contact No" class="form-control" 
-              value="<?php echo isset($user['contactNo']) ? $user['contactNo'] : '';?>">
+              value="<?php echo isset($user['contact']) ? $user['contact'] : '';?>">
               <span class="errors"><?php echo $errors['contact'] ?? ''; ?></span>
               <span class="errors" id="contactError"></span>
+            </div>
+
+            <div class="form-group">
+              <input type="text" name="address" placeholder="Address" class="form-control" value="<?php echo isset($user['address']) ? $user['address'] : '';?>">
+              <span class="errors"><?php echo $errors['address'] ?? ''; ?></span>
             </div>
 
             <div class="form-group">
@@ -279,15 +310,22 @@ ob_end_flush();
             </div>
 
             <div class="form-group">
-              <input type="password" name="password" placeholder="Password" class="form-control">
-              <span class="errors"><?php echo $errors['password'] ?? ''; ?></span>
+              <select name="company" class="form-control">
+                <option value="" selected disbaled>Select Company</option>
+                <?php foreach ($companies as $company): ?>
+                  <option value="<?php echo $company['id']; ?>" <?php echo isset($user['company_id']) && $user['company_id'] == $company['id'] ? "selected" : ""; ?>><?php echo $company['company_name']; ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
 
             <div class="form-group">
               <select name="role" class="form-control">
-                <option value="" selected disbaled>Select Role</option>
+                <option value="" disabled>Select Role</option>
                 <?php foreach ($roles as $role): ?>
-                  <option value="<?php echo $role['id']; ?>" <?php echo isset($user['role_id']) && $user['role_id'] == $role['id'] ? "selected" : ""; ?>><?php echo $role['role_name']; ?></option>
+                  <option value="<?php echo $role['id']; ?>" 
+                    <?php echo ($role['id'] == 3) ? 'selected' : ''; ?>
+                  ><?php echo $role['role_name']; ?>
+                  </option>
                 <?php endforeach; ?>
               </select>
               <span class="errors"><?php echo $errors['role'] ?? ''; ?></span>
@@ -298,7 +336,7 @@ ob_end_flush();
         <!-- /.row -->
 		<div class="row">
 		  <div class="col-md-6">
-		    <a class="btn btn-secondary" href="userManagement">Back to List</a>
+		    <a class="btn btn-secondary" href="driverManagement">Back to List</a>
 		  </div>
 		  <div class="col-md-6 text-right">
 		    <button type="submit" class="btn btn-success">Update</button>

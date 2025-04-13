@@ -23,5 +23,3 @@ if ($conn->connect_error) {
 // Uncomment this if you want to verify successful connection during development
 // echo "Connection successfully established!";
 ?>
-
-

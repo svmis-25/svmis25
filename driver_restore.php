@@ -40,6 +40,20 @@ if ($result->num_rows > 0){
   }
 }
 
+/*===================================
+  Query: Fetch Companies from Database
+=====================================*/
+
+$companies = [];
+$sql = "SELECT * FROM ref_companies";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0){
+  while($row = $result->fetch_assoc()){
+    $companies[] = $row;
+  }
+}
+
 
 /*===============================
   Fetch User to be deleted
@@ -49,7 +63,21 @@ if ($result->num_rows > 0){
 		$id = intval($_GET['id']);
 
 		// Fetch the existing data for the user
-		$sql = "SELECT firstname, middlename, lastname, qualifier, contact, email, role_id FROM users WHERE id = ?";
+		$sql = "SELECT 
+            firstname,
+            middlename,
+            lastname,
+            qualifier,
+            role_id,
+            company_id,
+            drivers.contact AS contact,
+            drivers.email AS email,
+            ref_companies.company_name AS company_name,
+            ref_roles.role_name AS `role`
+            FROM drivers
+            LEFT JOIN ref_companies ON drivers.company_id = ref_companies.id
+            LEFT JOIN ref_roles ON drivers.role_id = ref_roles.id
+            WHERE drivers.id = ?";
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param("i", $id);
 		$stmt->execute();
@@ -78,7 +106,7 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
 	$id = intval($_POST['id']);
 	
     	// Prepare the SQL query to insert data
-		$sql = "UPDATE users SET is_active = 0 WHERE id = ?";
+		$sql = "UPDATE drivers SET is_active = 1, `status` = 'available' WHERE id = ?";
 
 		//Create and prepare statement 
 		$stmt = $conn->prepare($sql);
@@ -92,21 +120,21 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
 
         //Record Activity
         require_once "activityLogsFunction.php";
-        $activity_id = 5; // represents the activity ID for deactivating a user
+        $activity_id = 16; // represents the activity ID for restoring a driver
         saveActivityLog($current_user_role_id, $activity_id, $current_user_id);
 
-				// echo "Data updated successfully!";
-				 $_SESSION['success'] = "User deleted successfully!";
+				// echo "Data restored successfully!";
+				 $_SESSION['success'] = "Data restored successfully!";
 
 			} else {
-				echo "User deletion failed: $stmt->error";
+				echo "Data restoration failed: $stmt->error";
 			}
 
 			// Close the statement
 			$stmt->close();
 		}
 		// Redirect to index after form submission
-		header("Location: userManagement");
+		header("Location: driverManagement");
 }
 
 // Close the database connection
@@ -117,16 +145,16 @@ ob_end_flush();
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
-    <li class="breadcrumb-item active" aria-current="page"><h3>User Management</h3></li>
+    <li class="breadcrumb-item active" aria-current="page"><h3>Driver Management</h3></li>
   </ol>
 </nav>
 
 <!-- Begin page content -->
 <main role="main" class="flex-shrink-0">
   <div class="container-fluid">
-    <div class="card border-danger mb-5">
-      <div class="card-header" style="color: white; background-color: #DC3545;">
-        <strong>Delete User</strong>
+    <div class="card border-warning mb-5">
+    <div class="card-header" style="color: white; background-color: #FFC107;">
+        <strong>Restore Driver</strong>
       </div>
       <div class="card-body">
         <form method="post" action="">
@@ -135,12 +163,10 @@ ob_end_flush();
           <div class="col-md-6">
             <div class="form-group">
               <input type="text" name="firstname" placeholder="Firstname" class="form-control" value="<?php echo isset($user['firstname']) ? $user['firstname'] : '';?>" disabled>
-              <span class="errors"><?php echo $errors['firstname'] ?? ''; ?></span>
             </div>
 
             <div class="form-group">
               <input type="text" name="middlename" placeholder="Middlename" class="form-control" value="<?php echo isset($user['middlename']) ? $user['middlename'] : '';?>" disabled>
-              <span class="errors"><?php echo $errors['middlename'] ?? ''; ?></span>
             </div>
 
             <div class="form-group">
@@ -156,28 +182,19 @@ ob_end_flush();
           <!-- /.col -->
           <div class="col-md-6">
             <div class="form-group">
-              <input type="text" name="contactNo" placeholder="Contact No" class="form-control" value="<?php echo isset($user['contactNo']) ? $user['contactNo'] : '';?>" disabled>
-              <span class="errors"><?php echo $errors['contact'] ?? ''; ?></span>
+              <input type="text" name="contact" placeholder="Contact No" class="form-control" value="<?php echo isset($user['contact']) ? $user['contact'] : '';?>" disabled>
             </div>
 
             <div class="form-group">
               <input type="email" name="email" placeholder="Email" class="form-control" value="<?php echo isset($user['email']) ? $user['email'] : '';?>" disabled>
-              <span class="errors"><?php echo $errors['email'] ?? ''; ?></span>
             </div>
 
             <div class="form-group">
-              <input type="password" name="password" placeholder="Password" class="form-control" disabled>
-              <span class="errors"><?php echo $errors['password'] ?? ''; ?></span>
+              <input type="text" name="company" placeholder="Company" class="form-control" value="<?php echo isset($user['company_name']) ? $user['company_name'] : '';?>" disabled>
             </div>
 
             <div class="form-group">
-              <select name="role" class="form-control" disabled>
-                <option value="" selected disbaled>Select Role</option>
-                <?php foreach ($roles as $role): ?>
-                  <option value="<?php echo $role['id']; ?>" <?php echo isset($user['role']) && $user['role'] == $role['id'] ? "selected" : ""; ?>><?php echo $role['roleDesc']; ?></option>
-                <?php endforeach; ?>
-              </select>
-              <span class="errors"><?php echo $errors['role'] ?? ''; ?></span>
+              <input type="text" name="role" placeholder="Role" class="form-control" value="<?php echo isset($user['role']) ? $user['role'] : '';?>" disabled>
             </div>
           </div>
           <!-- /.col -->
@@ -188,7 +205,7 @@ ob_end_flush();
 		    <a class="btn btn-secondary" href="userManagement">Back to List</a>
 		  </div>
 		  <div class="col-md-6 text-right">
-		    <button type="submit" class="btn btn-danger">Delete</button>
+		    <button type="submit" class="btn btn-warning">Restore</button>
 		  </div>
 		</div>
       </form>

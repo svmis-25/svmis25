@@ -265,7 +265,7 @@ function getTripHistory($conn) {
                     <strong>Manage Drivers</strong>
                 </div>
                 <div class="col-md-4 text-right">
-                    <a href="add_driver.php" class="btn btn-primary"><i class="fas fa-plus"></i> New Driver</a>
+                    <a href="driverManagement.php" class="btn btn-primary"><i class="fas fa-plus"></i> New Driver</a>
                 </div>
             </div>
         </div>
@@ -294,8 +294,8 @@ function getTripHistory($conn) {
                                         <?php
                                             // Determine badge class based on status
                                             $badgeClass = ($driver['status'] === 'available') ? 'badge badge-success' :
-                                                        ($driver['status'] === 'unavailable' ? 'badge badge-danger' :
-                                                        'badge badge-secondary'); // Default for other statuses
+                                                        ($driver['status'] === 'unavailable' ? 'badge badge-warning' :
+                                                        'badge badge-info'); // Default for other statuses
 
                                             // Display the badge with the status
                                             echo "<span class='$badgeClass'>" . ucfirst($driver['status']) . "</span>";
@@ -306,10 +306,13 @@ function getTripHistory($conn) {
                                         <button class="btn btn-primary dropdown-toggle" type="button" id="driverActions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         Actions
                                         </button>
-                                        <div class="dropdown-menu" aria-labelledby="driverActions">
-                                            <a class="dropdown-item" href="update_driver.php?id=<?php echo urlencode($driver['id']); ?>">Update</a>
-                                            <a class="dropdown-item" href="delete_driver.php?id=<?php echo urlencode($driver['id']); ?>">Delete</a>
-                                            <a class="dropdown-item" href="restore_driver.php?id=<?php echo urlencode($driver['id']); ?>">Restore</a>
+                                        <div class="dropdown-menu">
+                                            <a class="dropdown-item" href="driver_update?id=<?php echo urlencode($driver['id']); ?>">Update</a>
+                                            <?php if($driver['is_active'] == 1): ?>
+                                            <a class="dropdown-item" href="driver_delete?id=<?php echo urlencode($driver['id']); ?>">Delete</a>
+                                            <?php elseif ($driver['is_active'] == 0): ?>
+                                            <a class="dropdown-item" href="driver_restore?id=<?php echo urlencode($driver['id']); ?>">Restore</a>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     </td>

@@ -3,3 +3,8 @@ Stack trace:
 #0 C:\wamp64\www\svmis\app_script\start_trip.php(188): mysqli->prepare('UPDATE passenge...')
 #1 {main}
   thrown in C:\wamp64\www\svmis\app_script\start_trip.php on line 188
+[23-Feb-2025 15:31:29 Asia/Manila] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SET status = 'In-transit' WHERE driver_id = ? AND trip_id = 0' at line 1 in C:\wamp64\www\svmis\app_script\start_trip.php:188
+Stack trace:
+#0 C:\wamp64\www\svmis\app_script\start_trip.php(188): mysqli->prepare('UPDATE passenge...')
+#1 {main}
+  thrown in C:\wamp64\www\svmis\app_script\start_trip.php on line 188

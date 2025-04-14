@@ -32,12 +32,37 @@ if ($resultDrivers->num_rows > 0) {
     }
 }
 
-$sqlVans = "SELECT * FROM vans";
+$sqlVans = "SELECT 
+            v.*, 
+            vad.driver_id,
+            vad.trip_id,
+            vad.created_at AS assignment_date,
+            d.firstname AS driver_firstname,
+            d.middlename AS driver_middlename,
+            d.lastname AS driver_lastname,
+            d.qualifier AS driver_qualifier,
+            c.company_name
+        FROM vans v
+        LEFT JOIN van_assigned_driver vad ON v.id = vad.van_id
+        LEFT JOIN drivers d ON vad.driver_id = d.id
+        LEFT JOIN ref_companies c ON v.company_id = c.id
+        ORDER BY v.id DESC";
+
 $resultVans = $conn->query($sqlVans);
+$vans = [];
 
 if ($resultVans->num_rows > 0) {
     while ($row = $resultVans->fetch_assoc()) {
         $vans[] = $row;
+    }
+}
+
+$sqlVansAssignedDrivers = "SELECT * FROM van_assigned_driver";
+$resultVansAssignedDrivers = $conn->query($sqlVansAssignedDrivers);
+
+if ($resultVansAssignedDrivers->num_rows > 0) {
+    while ($row = $resultVansAssignedDrivers->fetch_assoc()) {
+        $vansAssignedDrivers[] = $row;
     }
 }
 
@@ -111,7 +136,7 @@ function getAvailableVans($conn) {
 
 // function to fetch ongoing vans
 function getOngoingVans($conn) {
-    $sqlOngoingVans = "SELECT * FROM vans WHERE status = 'ongoing'";
+    $sqlOngoingVans = "SELECT * FROM vans WHERE status = 'on trip'";
     $resultOngoingVans = $conn->query($sqlOngoingVans);
     return $resultOngoingVans;
 }
@@ -292,19 +317,17 @@ function getTripHistory($conn) {
                                     <td><?php echo $driver['is_active'] ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'; ?></td>
                                     <td>
                                         <?php
-                                            // Determine badge class based on status
-                                            $badgeClass = ($driver['status'] === 'available') ? 'badge badge-success' :
-                                                        ($driver['status'] === 'unavailable' ? 'badge badge-warning' :
-                                                        'badge badge-info'); // Default for other statuses
-
-                                            // Display the badge with the status
+                                            $badgeClass = match($driver['status']) {
+                                                'available' => 'badge badge-success',
+                                                'unavailable'   => 'badge badge-danger',
+                                                default     => 'badge badge-info'
+                                            };
                                             echo "<span class='$badgeClass'>" . ucfirst($driver['status']) . "</span>";
                                         ?>
                                     </td>
                                     <td>
-                                    <?php if ($driver['status'] !== 'on trip'): ?>
                                         <div class="dropdown">
-                                            <button class="btn btn-primary dropdown-toggle" type="button" id="driverActions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" id="driverActions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" <?php if($driver['status'] == "on trip"): ?> disabled <?php endif; ?>>
                                             Actions
                                             </button>
                                             <div class="dropdown-menu">
@@ -316,9 +339,6 @@ function getTripHistory($conn) {
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                    <?php else: ?>
-                                        <button class="btn btn-info" disabled>On Trip</button>
-                                    <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -341,7 +361,7 @@ function getTripHistory($conn) {
                     <strong>Manage Vans</strong>
                 </div>
                 <div class="col-md-4 text-right">
-                    <a href="add_driver.php" class="btn btn-info"><i class="fas fa-plus"></i> New Van</a>
+                    <a href="vanManagement.php" class="btn btn-info"><i class="fas fa-plus"></i> New Van</a>
                 </div>
             </div>
         </div>
@@ -354,45 +374,86 @@ function getTripHistory($conn) {
                             <th>Plate Number</th>
                             <th>Model</th>
                             <th>Status</th>
+                            <th>Company</th>
                             <th>Assigned Driver</th>
+                            <th>Assignment Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody class="text-center">
-                        <?php if (isset($vans)): ?>
+                        <?php if (!empty($vans)): ?>
                             <?php foreach ($vans as $van): ?>
                                 <tr>
-                                    <td class="hidden"><?php echo htmlspecialchars($van['id']); ?></td>
-                                    <td><?php echo htmlspecialchars($van['plate_number']); ?></td>
-                                    <td><?php echo htmlspecialchars($van['model']); ?></td>
+                                    <td class="hidden"><?= htmlspecialchars($van['id']) ?></td>
+                                    <td><?= htmlspecialchars($van['plate_number']) ?></td>
+                                    <td><?= htmlspecialchars($van['model']) ?></td>
                                     <td>
                                         <?php
-                                            // Determine badge class based on status
-                                            $badgeClass = ($van['status'] === 'available') ? 'badge badge-success' :
-                                                        (($van['status'] === 'ongoing') ? 'badge badge-warning' :
-                                                        'badge badge-danger'); // Assuming 'unavailable' or other statuses as default
-
-                                            // Display the badge with the status
+                                            $badgeClass = match($van['status']) {
+                                                'available' => 'badge badge-success',
+                                                'on trip'   => 'badge badge-warning',
+                                                default     => 'badge badge-danger'
+                                            };
                                             echo "<span class='$badgeClass'>" . ucfirst($van['status']) . "</span>";
                                         ?>
                                     </td>
-                                    <td><?php echo getDriverName($conn, $van['driver_id']); ?></td>
+                                    <td><?= htmlspecialchars($van['company_name'] ?? 'N/A') ?></td>
                                     <td>
-                                    <div class="dropdown">
-                                        <button class="btn btn-primary dropdown-toggle" type="button" id="vanActions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        Actions
-                                        </button>
-                                        <div class="dropdown-menu" aria-labelledby="vanActions">
-                                            <a class="dropdown-item" href="update_van.php?id=<?php echo urlencode($van['id']); ?>">Update</a>
-                                            <a class="dropdown-item" href="delete_van.php?id=<?php echo urlencode($van['id']); ?>">Delete</a>
-                                            <?php if($van['driver_id'] == null): ?>
-                                            <a class="dropdown-item" href="assign_driver.php?van_id=<?php echo urlencode($van['id']); ?>">Assign Driver</a>
-                                            <?php endif; ?>
+                                        <?php if (!empty($van['driver_id'])): ?>
+                                            <?php
+                                                $middleInitial = !empty($van['driver_middlename']) 
+                                                    ? substr($van['driver_middlename'], 0, 1) . '. ' 
+                                                    : '';
+                                                echo htmlspecialchars(
+                                                    $van['driver_firstname'] . ' ' . 
+                                                    $middleInitial . 
+                                                    $van['driver_lastname'] . ' ' . 
+                                                    ($van['driver_qualifier'] ?? '')
+                                                );
+                                            ?>
+                                        <?php else: ?>
+                                            Unassigned
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?= !empty($van['assignment_date']) 
+                                            ? date('M d, Y', strtotime($van['assignment_date'])) 
+                                            : 'N/A' ?>
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" 
+                                                id="vanActions" data-toggle="dropdown" aria-haspopup="true" 
+                                                aria-expanded="false" <?= $van['status'] == "on trip" ? 'disabled' : '' ?>>
+                                                Actions
+                                            </button>
+                                            <div class="dropdown-menu" aria-labelledby="vanActions">
+                                                <a class="dropdown-item" href="van_update.php?id=<?= urlencode($van['id']) ?>">
+                                                    Update
+                                                </a>
+                                                <?php if($van['status'] !== "deactivated"): ?>
+                                                    <a class="dropdown-item" href="van_delete.php?id=<?= urlencode($van['id']) ?>">
+                                                        Delete
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a class="dropdown-item" href="van_restore.php?id=<?= urlencode($van['id']) ?>">
+                                                        Restore
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if(empty($van['driver_id']) && $van['status'] !== "deactivated"): ?>
+                                                    <a class="dropdown-item" href="van_assigned_driver.php?id=<?= urlencode($van['id']) ?>">
+                                                        Assign Driver
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
-                                    </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" class="text-center">No vans found</td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>

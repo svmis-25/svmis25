@@ -27,6 +27,7 @@
           <a class="dropdown-item" href="passengerManagement">Passenger Management</a>
           <a class="dropdown-item" href="luggageManagement">Luggage Management</a>
           <a class="dropdown-item" href="driverManagement">Driver Management</a>
+          <a class="dropdown-item" href="vanManagement">Van Management</a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" href="userManagement">User Management</a>
           <a class="dropdown-item" href="activityLogs">Activity Logs</a>

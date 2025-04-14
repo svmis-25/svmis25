@@ -143,7 +143,7 @@ if($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id'])){
           } else {
               //Record Activity
               require_once "activityLogsFunction.php";
-              $activity_id = 20; // represents the activity ID for assigning a driver to a van
+              $activity_id = 21; // represents the activity ID for assigning a driver to a van
               saveActivityLog($current_user_role_id, $activity_id, $current_user_id);
 
               // Set session success message
@@ -198,74 +198,74 @@ ob_end_flush();
         <strong>Update Van</strong>
       </div>
       <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="form-group">
-              <input type="text" name="plate_number" placeholder="Plate Number" class="form-control" value="<?php echo isset($van['plate_number']) ? $van['plate_number'] : '';?>">
-              <span class="errors"><?php echo $errors['plate_number'] ?? ''; ?></span>
-            </div>
+        <form method="post" action="">
+          <input type="hidden" name="id" value="<?php echo isset($id) ? htmlspecialchars($id) : '' ?>">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <input type="text" name="plate_number" placeholder="Plate Number" class="form-control" value="<?php echo isset($van['plate_number']) ? $van['plate_number'] : '';?>">
+                <span class="errors"><?php echo $errors['plate_number'] ?? ''; ?></span>
+              </div>
 
-            <div class="form-group">
-              <input type="text" name="model" placeholder="Model" class="form-control" value="<?php echo isset($van['model']) ? $van['model'] : '';?>">
-              <span class="errors"><?php echo $errors['model'] ?? ''; ?></span>
-            </div>
+              <div class="form-group">
+                <input type="text" name="model" placeholder="Model" class="form-control" value="<?php echo isset($van['model']) ? $van['model'] : '';?>">
+                <span class="errors"><?php echo $errors['model'] ?? ''; ?></span>
+              </div>
 
-            <div class="form-group">
-              <input type="text" name="color" placeholder="Color" class="form-control" value="<?php echo isset($van['color']) ? $van['color'] : '';?>">
-              <span class="errors"><?php echo $errors['color'] ?? ''; ?></span>
-            </div>
+              <div class="form-group">
+                <input type="text" name="color" placeholder="Color" class="form-control" value="<?php echo isset($van['color']) ? $van['color'] : '';?>">
+                <span class="errors"><?php echo $errors['color'] ?? ''; ?></span>
+              </div>
 
-            <div class="form-group">
-              <select name="company" class="form-control">
-                <option value="" selected disbaled>Select Company</option>
-                <?php foreach ($companies as $company): ?>
-                  <option value="<?php echo $company['id']; ?>" <?php echo isset($van['company_id']) && $van['company_id'] == $company['id'] ? "selected" : ""; ?>><?php echo $company['company_name']; ?></option>
-                <?php endforeach; ?>
-              </select>
-              <span class="errors"><?php echo $errors['company'] ?? ''; ?></span>
+              <div class="form-group">
+                <select name="company" class="form-control">
+                  <option value="" selected disabled>Select Company</option>
+                  <?php foreach ($companies as $company): ?>
+                    <option value="<?php echo $company['id']; ?>" <?php echo isset($van['company_id']) && $van['company_id'] == $company['id'] ? "selected" : ""; ?>><?php echo $company['company_name']; ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <span class="errors"><?php echo $errors['company'] ?? ''; ?></span>
+              </div>
             </div>
-          </div>
-          <!-- /.col -->
-          <form method="post" action="">
-          <input type="hidden" name="id" value="<?php echo isset($id) ? htmlspecialchars($id) : '' ?>"><br>
-          <div class="col-md-6">
-            <div class="form-group">
+            <!-- /.col -->
+            <div class="col-md-6">
+              <div class="form-group">
                 <select name="driver" id="driverSelect" class="form-control select2">
-                <option value="" selected disabled>Select Driver</option>
-                <?php foreach ($drivers as $driver): ?>
+                  <option value="" selected disabled>Select Driver</option>
+                  <?php foreach ($drivers as $driver): ?>
                     <option value="<?php echo $driver['id']; ?>" 
                     <?php echo isset($van['driver_id']) && $van['driver_id'] == $driver['id'] ? "selected" : ""; ?>>
                     <?php echo htmlspecialchars($driver['firstname'] . ' ' . htmlspecialchars($driver['lastname'])); ?>
                     </option>
-                <?php endforeach; ?>
+                  <?php endforeach; ?>
                 </select>
                 
                 <!-- Display Driver Details -->
                 <div class="mt-3">
-                <h5>Driver Details:</h5>
-                <div id="driverDetails">
+                  <h5>Driver Details:</h5>
+                  <div id="driverDetails">
                     <p>Name: <span id="driverName"></span></p>
                     <p>Contact: <span id="driverContact"></span></p>
                     <p>Email: <span id="driverEmail"></span></p>
                     <p>Address: <span id="driverAddress"></span></p>
                     <p>Company: <span id="driverCompany"></span></p>
-                </div>
+                  </div>
                 </div>
                 <span class="errors"><?php echo $errors['driver'] ?? ''; ?></span>
+              </div>
             </div>
+            <!-- /.col -->
+          </div>
+          <!-- /.row -->
+          <div class="row">
+            <div class="col-md-6">
+              <a class="btn btn-secondary" href="vanManagement">Back to List</a>
             </div>
-          <!-- /.col -->
-        </div>
-        <!-- /.row -->
-		<div class="row">
-		  <div class="col-md-6">
-		    <a class="btn btn-secondary" href="vanManagement">Back to List</a>
-		  </div>
-		  <div class="col-md-6 text-right">
-		    <button type="submit" class="btn btn-success">Assign</button>
-		  </div>
-		</div>
-      </form>
+            <div class="col-md-6 text-right">
+              <button type="submit" class="btn btn-success">Assign</button>
+            </div>
+          </div>
+        </form>
       </div>
       <!-- /.card-body -->
     </div>
